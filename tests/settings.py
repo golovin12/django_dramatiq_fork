@@ -93,6 +93,7 @@ DRAMATIQ_BROKER = {
         "django_dramatiq.middleware.DbConnectionsMiddleware",
     ],
 }
+DRAMATIQ_TASKS_EXCLUDED_ACTORS = ['ignored_actor_for_db']
 
 
 # Auth

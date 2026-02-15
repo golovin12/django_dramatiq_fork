@@ -117,3 +117,7 @@ class DjangoDramatiqConfig(AppConfig):
     def select_encoder(cls):
         encoder = getattr(settings, "DRAMATIQ_ENCODER", DEFAULT_ENCODER)
         return import_string(encoder)()
+
+    @classmethod
+    def tasks_excluded_actors(cls):
+        return getattr(settings, "DRAMATIQ_TASKS_EXCLUDED_ACTORS", [])

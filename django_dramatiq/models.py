@@ -10,9 +10,13 @@ from .apps import DjangoDramatiqConfig
 #: The database label to use when storing task metadata.
 DATABASE_LABEL = DjangoDramatiqConfig.tasks_database()
 
+EXCLUDED_ACTORS = DjangoDramatiqConfig.tasks_excluded_actors()
+
 
 class TaskManager(models.Manager):
     def create_or_update_from_message(self, message, **extra_fields):
+        if message.actor_name in EXCLUDED_ACTORS:
+            return None
         task, _ = self.using(DATABASE_LABEL).update_or_create(
             id=message.message_id,
             defaults={
