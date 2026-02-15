@@ -19,7 +19,7 @@ class AdminMiddleware(Middleware):
         if delay:
             status = Task.STATUS_DELAYED
 
-        Task.tasks.create_or_update_from_message(
+        Task.tasks.upsert_from_message(
             message,
             status=status,
             actor_name=message.actor_name,
@@ -30,7 +30,7 @@ class AdminMiddleware(Middleware):
         from .models import Task
 
         LOGGER.debug("Updating Task from message %r.", message.message_id)
-        Task.tasks.create_or_update_from_message(
+        Task.tasks.upsert_from_message(
             message,
             status=Task.STATUS_RUNNING,
             actor_name=message.actor_name,
@@ -59,7 +59,7 @@ class AdminMiddleware(Middleware):
             status = Task.STATUS_DONE
 
         LOGGER.debug("Updating Task from message %r.", message.message_id)
-        Task.tasks.create_or_update_from_message(
+        Task.tasks.upsert_from_message(
             message,
             status=status,
             actor_name=message.actor_name,

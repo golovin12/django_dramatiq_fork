@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db import models
+from django.db import models, connections
 from django.utils.functional import cached_property
 from django.utils.timezone import now
 from dramatiq import Message
@@ -14,17 +14,61 @@ EXCLUDED_ACTORS = DjangoDramatiqConfig.tasks_excluded_actors()
 
 
 class TaskManager(models.Manager):
-    def create_or_update_from_message(self, message, **extra_fields):
-        if message.actor_name in EXCLUDED_ACTORS:
-            return None
-        task, _ = self.using(DATABASE_LABEL).update_or_create(
+    database_label = DATABASE_LABEL
+
+    @cached_property
+    def is_postgres(self) -> bool:
+        return connections[self.database_label].vendor == "postgresql"
+
+    def _postgres_upsert(self, message, **extra_fields) -> None:
+        # https://github.com/Bogdanp/django_dramatiq/issues/105 : fix for PostgreSQL
+        defaults = {
+            "message_data": message.encode(),
+            **extra_fields,
+        }
+
+        self.using(self.database_label).bulk_create(
+            [
+                self.model(
+                    id=message.message_id,
+                    **defaults,
+                )
+            ],
+            update_conflicts=True,
+            update_fields=["message_data", *extra_fields.keys()],
+            unique_fields=["id"],
+        )
+
+    def _default_upsert(self, message, **extra_fields):
+        return self.using(self.database_label).update_or_create(
             id=message.message_id,
             defaults={
                 "message_data": message.encode(),
                 **extra_fields,
             },
         )
-        return task
+
+    def _upsert(self, message, **extra_fields):
+        if self.is_postgres:
+            self._postgres_upsert(message, **extra_fields)
+            return None
+
+        obj, _ = self._default_upsert(message, **extra_fields)
+        return obj
+
+    def create_or_update_from_message(self, message, **extra_fields) -> 'Task':
+        obj = self._upsert(message, **extra_fields)
+
+        if obj is not None:
+            return obj
+
+        return self.get(pk=message.message_id)
+
+    def upsert_from_message(self, message, **extra_fields) -> None:
+        if message.actor_name in EXCLUDED_ACTORS:
+            return
+
+        self._upsert(message, **extra_fields)
 
     def delete_old_tasks(self, max_task_age):
         self.using(DATABASE_LABEL).filter(created_at__lte=now() - timedelta(seconds=max_task_age)).delete()
