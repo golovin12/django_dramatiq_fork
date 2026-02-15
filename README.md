@@ -1,3 +1,10 @@
+# Fork - disclaimer:
+1) В **settings.py** можно добавить параметр `DRAMATIQ_TASKS_EXCLUDED_ACTORS`
+, чтобы указать акторы, для которых не будут создаваться записи в **models.Task**.
+
+2) Для PostgreSQL добавлена попытка оптимизации, чтобы не появлялись сообщения
+`duplicate key value violates unique constraint "django_dramatiq_task_pkey"`.
+
 # Django Dramatiq
 
 ![Python Version](https://img.shields.io/pypi/pyversions/django-dramatiq)
@@ -50,7 +57,7 @@ Configure your broker in `settings.py`:
 
 ``` python
 DRAMATIQ_BROKER = {
-    "BROKER": "dramatiq.brokers.rabbitmq.RabbitmqBroker", 
+    "BROKER": "dramatiq.brokers.rabbitmq.RabbitmqBroker",
     "OPTIONS": {
         "url": "amqp://localhost:5672",
     },
@@ -225,10 +232,10 @@ def test_customers_can_be_emailed(transactional_db, broker, worker, mailoutbox):
 ```
 
 
-> [!NOTE]  
-> If your tests rely on the results of the actor, you may experience inconsistent results. Due to the nature of the worker and test running in seperate threads, the test DB state may be different. 
-> 
-> To solve this you need to add the addtional `@pytest.mark.django_db(transaction=True)` decorator. 
+> [!NOTE]
+> If your tests rely on the results of the actor, you may experience inconsistent results. Due to the nature of the worker and test running in seperate threads, the test DB state may be different.
+>
+> To solve this you need to add the addtional `@pytest.mark.django_db(transaction=True)` decorator.
 
 #### Using unittest
 
